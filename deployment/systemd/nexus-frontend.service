@@ -1,0 +1,47 @@
+[Unit]
+Description=Nexus Monitoring Portal Frontend
+Documentation=https://github.com/your-repo/nexus-monitoring-portal
+After=network.target nexus-backend.service
+Wants=nexus-backend.service
+
+[Service]
+Type=simple
+User=nexus
+Group=nexus
+WorkingDirectory=/home/nexus/monitoring-portal/frontend
+Environment=NODE_ENV=production
+Environment=PORT=3000
+EnvironmentFile=/home/nexus/monitoring-portal/frontend/.env.production
+
+# Main process
+ExecStart=/usr/bin/npm start
+
+# Process management
+Restart=always
+RestartSec=3
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/home/nexus/monitoring-portal
+ReadWritePaths=/var/log/nexus
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=nexus-frontend
+
+# Health check
+ExecReload=/bin/kill -HUP $MAINPID
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,48 @@
+[Unit]
+Description=Nexus Monitoring Portal Celery Worker
+Documentation=https://github.com/your-repo/nexus-monitoring-portal
+After=network.target redis.service postgresql.service
+Requires=redis.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=nexus
+Group=nexus
+WorkingDirectory=/home/nexus/monitoring-portal/backend
+Environment=PATH=/home/nexus/monitoring-portal/backend/venv/bin
+EnvironmentFile=/home/nexus/monitoring-portal/backend/.env.production
+
+# Main process
+ExecStart=/home/nexus/monitoring-portal/backend/venv/bin/celery -A tasks.celery_app worker --loglevel=info --concurrency=4
+
+# Process management
+Restart=always
+RestartSec=3
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=60
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/home/nexus/monitoring-portal
+ReadWritePaths=/var/log/nexus
+ReadWritePaths=/var/uploads/nexus
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=nexus-worker
+
+# Health check
+ExecReload=/bin/kill -HUP $MAINPID
+
+[Install]
+WantedBy=multi-user.target

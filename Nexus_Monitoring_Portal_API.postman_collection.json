@@ -1,0 +1,386 @@
+{
+	"info": {
+		"name": "Nexus Monitoring Portal API",
+		"description": "Complete API collection for the Nexus Monitoring Portal including GCP integration, Google Analytics, device management, uptime monitoring, SSL checks, network diagnostics, and streams.",
+		"version": "1.0.0",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Device Management",
+			"item": [
+				{
+					"name": "Create Device",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Server-01\",\n  \"ip_address\": \"192.168.1.100\",\n  \"device_type\": \"server\",\n  \"location\": \"Data Center A\",\n  \"is_active\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/devices",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "devices"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Devices",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/devices?skip=0&limit=100",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "devices"],
+							"query": [
+								{
+									"key": "skip",
+									"value": "0"
+								},
+								{
+									"key": "limit",
+									"value": "100"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Device by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/devices/{{device_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "devices", "{{device_id}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Device",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated Server Name\",\n  \"location\": \"Data Center B\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/devices/{{device_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "devices", "{{device_id}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Device",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/devices/{{device_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "devices", "{{device_id}}"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Uptime Monitoring",
+			"item": [
+				{
+					"name": "Create Uptime Monitor",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Website Monitor\",\n  \"url\": \"https://example.com\",\n  \"method\": \"GET\",\n  \"interval\": 300,\n  \"timeout\": 30,\n  \"expected_status_code\": 200,\n  \"is_active\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/uptime/monitors",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "uptime", "monitors"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Uptime Monitors",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/uptime/monitors?skip=0&limit=100",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "uptime", "monitors"],
+							"query": [
+								{
+									"key": "skip",
+									"value": "0"
+								},
+								{
+									"key": "limit",
+									"value": "100"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "SSL Monitoring",
+			"item": [
+				{
+					"name": "Create SSL Check",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"hostname\": \"example.com\",\n  \"port\": 443,\n  \"check_interval_hours\": 24,\n  \"alert_days_before_expiry\": 30,\n  \"is_active\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/ssl/checks",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "ssl", "checks"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get SSL Checks",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/ssl/checks?skip=0&limit=100",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "ssl", "checks"],
+							"query": [
+								{
+									"key": "skip",
+									"value": "0"
+								},
+								{
+									"key": "limit",
+									"value": "100"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Network Diagnostics",
+			"item": [
+				{
+					"name": "Ping Test",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"host\": \"google.com\",\n  \"count\": 4\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/diagnostics/ping",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "diagnostics", "ping"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "HTTP Check",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"url\": \"https://example.com\",\n  \"method\": \"GET\",\n  \"timeout\": 30\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/diagnostics/http",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "diagnostics", "http"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "GCP Integration",
+			"item": [
+				{
+					"name": "Get GCP Projects",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/gcp/projects",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "gcp", "projects"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get GCP Credentials",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/gcp/credentials",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "gcp", "credentials"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "GCP Services",
+			"item": [
+				{
+					"name": "Get Compute Instances",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/gcp/services/compute/instances",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "gcp", "services", "compute", "instances"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Cloud Storage Buckets",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/gcp/services/storage/buckets",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "gcp", "services", "storage", "buckets"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Google Analytics",
+			"item": [
+				{
+					"name": "Get Analytics Data",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"property_id\": \"123456789\",\n  \"start_date\": \"2024-01-01\",\n  \"end_date\": \"2024-01-31\",\n  \"metrics\": [\"sessions\", \"pageviews\", \"users\"],\n  \"dimensions\": [\"date\", \"country\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/analytics/data",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "analytics", "data"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Analytics Properties",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/analytics/properties",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "analytics", "properties"]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "device_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "monitor_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "check_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "stream_id",
+			"value": "1",
+			"type": "string"
+		}
+	]
+}

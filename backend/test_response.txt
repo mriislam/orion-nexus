@@ -1,1 +1,0 @@
-{"detail":"Failed to start metrics collection: 500: GCP monitoring library not available"}

@@ -10,7 +10,7 @@ pymongo==4.6.0
 # Authentication and security
 pydantic==2.5.0
 pydantic-settings==2.1.0
-cryptography==41.0.8
+cryptography==42.0.0
 passlib[bcrypt]==1.7.4
 python-jose[cryptography]==3.3.0
 
@@ -19,7 +19,7 @@ pysnmp==4.4.12
 pyasn1==0.5.1
 
 # SSL certificate checking
-pyOpenSSL==23.3.0
+pyOpenSSL==24.0.0
 certifi==2023.11.17
 
 # HTTP client for SSL and uptime checks
@@ -49,22 +49,21 @@ dnspython==2.4.2
 
 # Firebase integration
 firebase-admin==7.1.0
-google-analytics-data==0.18.12
 
 # Data export dependencies
-pandas==2.1.4
+pandas==2.0.3
 openpyxl==3.1.2
 reportlab==4.0.7
 
 # Google Cloud Platform integration
-google-auth==2.25.2
+google-auth==2.28.0
 google-auth-oauthlib==1.2.0
 google-auth-httplib2==0.2.0
 google-cloud-monitoring==2.16.0
 google-cloud-compute==1.15.0
-google-cloud-storage==2.10.0
+google-cloud-storage==3.1.1
 cloud-sql-python-connector==1.18.4
-google-cloud-firestore==2.13.1
+google-cloud-firestore==2.21.0
 google-cloud-functions==1.13.3
 google-cloud-run==0.10.5
 google-cloud-container==2.34.0
@@ -86,7 +85,7 @@ requests==2.31.0
 # Development dependencies
 pytest==7.4.3
 pytest-asyncio==0.21.1
-httpx==0.25.2
+httpx==0.28.1
 black==23.11.0
 flake8==6.1.0
 mypy==1.7.1

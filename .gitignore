@@ -8,6 +8,25 @@
 backend/config/firebase_service_account.json
 backend/config/firebase_config.json
 
+# Google Service Account Keys
+*service-account*.json
+*service_account*.json
+*gcp-credentials*.json
+*firebase-adminsdk*.json
+*google-credentials*.json
+credentials.json
+key.json
+keys/
+credentials/
+
+# Other sensitive files
+*.p12
+*.pfx
+secrets.yaml
+secrets.yml
+.secrets
+config/secrets/
+
 # Python
 __pycache__/
 *.py[cod]

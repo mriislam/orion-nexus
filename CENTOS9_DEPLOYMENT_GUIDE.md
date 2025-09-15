@@ -1,6 +1,6 @@
-# Nexus Monitoring Portal - CentOS 9 Manual Deployment Guide
+# Orion Nexus - CentOS 9 Manual Deployment Guide
 
-This guide provides step-by-step instructions for manually deploying the Nexus Monitoring Portal on a CentOS 9 server.
+This guide provides step-by-step instructions for manually deploying the Orion Nexus Network Monitoring Portal on a CentOS 9 server using root user access and MongoDB Atlas.
 
 ## Table of Contents
 1. [Prerequisites](#prerequisites)
@@ -31,18 +31,18 @@ This guide provides step-by-step instructions for manually deploying the Nexus M
 ### 1. Update System
 ```bash
 # Update all packages
-sudo dnf update -y
+dnf update -y
 
 # Install EPEL repository
-sudo dnf install -y epel-release
+dnf install -y epel-release
 
 # Install development tools
-sudo dnf groupinstall -y "Development Tools"
+dnf groupinstall -y "Development Tools"
 ```
 
 ### 2. Install Basic Dependencies
 ```bash
-sudo dnf install -y \
+dnf install -y \
     curl \
     wget \
     git \
@@ -50,122 +50,80 @@ sudo dnf install -y \
     vim \
     htop \
     firewalld \
-    policycoreutils-python-utils
+    policycoreutils-python-utils \
+    net-tools
 ```
 
 ### 3. Configure Firewall
 ```bash
 # Start and enable firewall
-sudo systemctl start firewalld
-sudo systemctl enable firewalld
+systemctl start firewalld
+systemctl enable firewalld
 
 # Open required ports
-sudo firewall-cmd --permanent --add-service=http
-sudo firewall-cmd --permanent --add-service=https
-sudo firewall-cmd --permanent --add-port=8000/tcp  # Backend
-sudo firewall-cmd --permanent --add-port=3000/tcp  # Frontend
-sudo firewall-cmd --reload
+firewall-cmd --permanent --add-service=http
+firewall-cmd --permanent --add-service=https
+firewall-cmd --permanent --add-port=8000/tcp  # Backend API
+firewall-cmd --permanent --add-port=3000/tcp  # Frontend
+firewall-cmd --reload
+
+# Verify firewall rules
+firewall-cmd --list-all
 ```
 
-## User Setup
+## Application Setup
 
-### 1. Create Application User
+### 1. Create Application Directories
 ```bash
-# Create nexus user
-sudo useradd -m -s /bin/bash nexus
-
-# Add to wheel group for sudo access
-sudo usermod -aG wheel nexus
-
-# Create application directories
-sudo mkdir -p /home/nexus/monitoring-portal
-sudo mkdir -p /var/log/nexus
-sudo mkdir -p /var/uploads/nexus
-sudo mkdir -p /var/lib/nexus
-sudo mkdir -p /var/backups/nexus
-
-# Set ownership
-sudo chown -R nexus:nexus /home/nexus/monitoring-portal
-sudo chown -R nexus:nexus /var/log/nexus
-sudo chown -R nexus:nexus /var/uploads/nexus
-sudo chown -R nexus:nexus /var/lib/nexus
+# Create application directories as root
+mkdir -p /opt/orion-nexus
+mkdir -p /var/log/orion-nexus
+mkdir -p /var/uploads/orion-nexus
+mkdir -p /var/lib/orion-nexus
+mkdir -p /var/backups/orion-nexus
 
 # Set permissions
-sudo chmod 755 /home/nexus/monitoring-portal
-sudo chmod 755 /var/log/nexus
-sudo chmod 755 /var/uploads/nexus
-sudo chmod 755 /var/lib/nexus
+
+chmod 755 /opt/orion-nexus
+chmod 755 /var/log/orion-nexus
+chmod 755 /var/uploads/orion-nexus
+chmod 755 /var/lib/orion-nexus
+chmod 755 /var/backups/orion-nexus
 ```
 
-## Database Installation
+## Database Configuration
 
-### 1. Install MongoDB
+### MongoDB Atlas Setup
+
+This deployment uses MongoDB Atlas cloud database. No local MongoDB installation is required.
+
+**Prerequisites:**
+- MongoDB Atlas account
+- Database cluster created
+- Network access configured to allow your server IP
+- Database user created with appropriate permissions
+
+**Connection Details:**
+- Connection String: `mongodb+srv://nmp:<db_password>@orion-nexus.5lt4kqc.mongodb.net/?retryWrites=true&w=majority&appName=orion-nexus`
+- Database Name: `orion_nexus`
+- Username: `nmp`
+- Password: `<db_password>` (replace with your actual password)
+
+### Test MongoDB Atlas Connection
 ```bash
-# Add MongoDB repository
-cat <<EOF | sudo tee /etc/yum.repos.d/mongodb-org-6.0.repo
-[mongodb-org-6.0]
-name=MongoDB Repository
-baseurl=https://repo.mongodb.org/yum/redhat/9/mongodb-org/6.0/x86_64/
-gpgcheck=1
-enabled=1
-gpgkey=https://www.mongodb.org/static/pgp/server-6.0.asc
-EOF
+# Install MongoDB Shell (mongosh) for testing
+wget https://downloads.mongodb.com/compass/mongodb-mongosh-1.10.6.x86_64.rpm
+rpm -ivh mongodb-mongosh-1.10.6.x86_64.rpm
 
-# Install MongoDB
-sudo dnf install -y mongodb-org
+# Test connection (replace <db_password> with actual password)
+mongosh "mongodb+srv://nmp:<db_password>@orion-nexus.5lt4kqc.mongodb.net/?retryWrites=true&w=majority&appName=orion-nexus"
 
-# Start and enable MongoDB
-sudo systemctl start mongod
-sudo systemctl enable mongod
-```
-
-### 2. Configure MongoDB
-```bash
-# Connect to MongoDB
-mongosh
-
-# Create database and user (run in MongoDB shell)
+# In mongosh, test database access:
 use orion_nexus
-db.createUser({
-  user: "nexus_user",
-  pwd: "your_secure_password_here",
-  roles: [
-    { role: "readWrite", db: "orion_nexus" },
-    { role: "dbAdmin", db: "orion_nexus" }
-  ]
-})
+db.test.insertOne({test: "connection"})
+db.test.find()
+db.test.drop()
 exit
-```
-
-### 3. Configure MongoDB Authentication
-```bash
-# Edit MongoDB configuration
-sudo vim /etc/mongod.conf
-
-# Enable authentication by adding/modifying:
-security:
-  authorization: enabled
-
-# Restart MongoDB
-sudo systemctl restart mongod
-
-# Test connection with authentication
-mongosh -u nexus_user -p your_secure_password_here --authenticationDatabase orion_nexus
-```
-
-### 4. Fix MongoDB Socket Permissions (if needed)
-```bash
-# If MongoDB fails to start with socket permission errors, run:
-sudo systemctl stop mongod
-sudo rm -f /tmp/mongodb-27017.sock
-sudo chmod 1777 /tmp
-sudo chown mongod:mongod /var/lib/mongo
-sudo chown mongod:mongod /var/log/mongodb
-sudo systemctl start mongod
-
-# Verify MongoDB is running
-sudo systemctl status mongod
-sudo tail -f /var/log/mongodb/mongod.log
 ```
 
 ## Redis Installation
@@ -173,11 +131,11 @@ sudo tail -f /var/log/mongodb/mongod.log
 ### 1. Install Redis
 ```bash
 # Install Redis
-sudo dnf install -y redis
+dnf install -y redis
 
 # Start and enable Redis
-sudo systemctl start redis
-sudo systemctl enable redis
+systemctl start redis
+systemctl enable redis
 
 # Test Redis connection
 redis-cli ping
@@ -189,10 +147,10 @@ redis-cli ping
 ### 1. Install Node.js 18.x
 ```bash
 # Add NodeSource repository
-curl -fsSL https://rpm.nodesource.com/setup_18.x | sudo bash -
+curl -fsSL https://rpm.nodesource.com/setup_18.x | bash -
 
 # Install Node.js
-sudo dnf install -y nodejs
+dnf install -y nodejs
 
 # Verify installation
 node --version
@@ -204,7 +162,7 @@ npm --version
 ### 1. Install Python 3.11
 ```bash
 # Install Python and development tools
-sudo dnf install -y \
+dnf install -y \
     python3 \
     python3-pip \
     python3-devel \
@@ -220,17 +178,14 @@ pip3 --version
 
 ### 1. Clone Repository
 ```bash
-# Switch to nexus user
-sudo su - nexus
-
-# Clone the repository
-git clone https://github.com/your-repo/nexus-monitoring-portal.git /home/nexus/monitoring-portal
-cd /home/nexus/monitoring-portal
+# Clone the orion-nexus repository
+git clone https://github.com/mriislam/orion-nexus.git /opt/orion-nexus
+cd /opt/orion-nexus
 ```
 
 ### 2. Setup Backend
 ```bash
-cd /home/nexus/monitoring-portal/backend
+cd /opt/orion-nexus/backend
 
 # Create virtual environment
 python3 -m venv venv
@@ -245,31 +200,38 @@ pip install --upgrade pip
 pip install -r requirements.txt
 
 # Copy environment template
-cp .env.production.template .env.production
+cp .env.example .env.production
 ```
 
 ### 3. Configure Backend Environment
 ```bash
 # Edit backend environment file
-vim /home/nexus/monitoring-portal/backend/.env.production
+vim /opt/orion-nexus/backend/.env.production
 ```
 
 Update the following variables:
 ```env
-# Database
-MONGODB_URL=mongodb://nexus_user:your_secure_password_here@localhost:27017/orion_nexus?authSource=orion_nexus
+# Database - MongoDB Atlas
+MONGODB_URL=mongodb+srv://nmp:<db_password>@orion-nexus.5lt4kqc.mongodb.net/?retryWrites=true&w=majority&appName=orion-nexus
+MONGODB_DATABASE=orion_nexus
 
 # Redis
 REDIS_URL=redis://localhost:6379/0
 
 # Security
 SECRET_KEY=your_very_long_random_secret_key_here
+AES_SECRET_KEY=your_aes_secret_key_here
 JWT_SECRET_KEY=another_very_long_random_secret_key_here
 
 # Application
 ENVIRONMENT=production
 DEBUG=false
 ALLOWED_HOSTS=your-domain.com,www.your-domain.com
+
+# Monitoring Intervals (seconds)
+DEVICE_POLL_INTERVAL=300
+SSL_CHECK_INTERVAL=3600
+UPTIME_CHECK_INTERVAL=60
 
 # Email (optional)
 SMTP_HOST=smtp.gmail.com
@@ -280,107 +242,137 @@ SMTP_PASSWORD=your-app-password
 
 ### 4. Setup Frontend
 ```bash
-cd /home/nexus/monitoring-portal/frontend
+# Verify repository structure first
+ls -la /opt/orion-nexus/
+
+# Check if frontend directory exists
+if [ ! -d "/opt/orion-nexus/frontend" ]; then
+    echo "Error: Frontend directory not found. Checking repository structure..."
+    find /opt/orion-nexus -name "package.json" -type f
+    exit 1
+fi
+
+cd /opt/orion-nexus/frontend
+
+# Verify package.json exists
+if [ ! -f "package.json" ]; then
+    echo "Error: package.json not found in frontend directory"
+    echo "Current directory contents:"
+    ls -la
+    exit 1
+fi
 
 # Install dependencies
 npm install
 
-# Copy environment template
-cp .env.production.template .env.production
+# Create environment file
+cp .env.local.example .env.local
 ```
 
 ### 5. Configure Frontend Environment
 ```bash
 # Edit frontend environment file
-vim /home/nexus/monitoring-portal/frontend/.env.production
+vim /opt/orion-nexus/frontend/.env.local
 ```
 
 Update the following variables:
 ```env
+# API Configuration
 NEXT_PUBLIC_API_URL=https://your-domain.com/api
-NEXT_PUBLIC_WS_URL=wss://your-domain.com/ws
+NEXT_PUBLIC_AES_SECRET_KEY=your_aes_secret_key_here
+
+# Application
+NEXT_PUBLIC_APP_NAME=Orion Nexus
 NODE_ENV=production
 PORT=3000
 ```
 
 ### 6. Build Frontend
 ```bash
-cd /home/nexus/monitoring-portal/frontend
+cd /opt/orion-nexus/frontend
 npm run build
 ```
 
-### 7. Run Database Migrations
+### 7. Test Application Setup
 ```bash
-cd /home/nexus/monitoring-portal/backend
+cd /opt/orion-nexus/backend
 source venv/bin/activate
-alembic upgrade head
+
+# Test MongoDB Atlas connection
+python3 -c "from core.database import get_database; print('Database connection successful' if get_database() else 'Database connection failed')"
+
+# Test Redis connection
+redis-cli ping
 ```
 
 ## Service Configuration
 
-### 1. Install Systemd Services
+### 1. Update Systemd Service Files
 ```bash
-# Exit from nexus user
-exit
+# Update service files to use correct paths
+sed -i 's|/home/nexus/monitoring-portal|/opt/orion-nexus|g' /opt/orion-nexus/deployment/systemd/*.service
+sed -i 's|User=nexus|User=root|g' /opt/orion-nexus/deployment/systemd/*.service
+sed -i 's|Group=nexus|Group=root|g' /opt/orion-nexus/deployment/systemd/*.service
 
 # Copy service files
-sudo cp /home/nexus/monitoring-portal/deployment/systemd/*.service /etc/systemd/system/
+cp /opt/orion-nexus/deployment/systemd/*.service /etc/systemd/system/
 
 # Reload systemd
-sudo systemctl daemon-reload
+systemctl daemon-reload
 ```
 
 ### 2. Enable Services
 ```bash
-sudo systemctl enable nexus-backend.service
-sudo systemctl enable nexus-frontend.service
-sudo systemctl enable nexus-worker.service
-sudo systemctl enable nexus-scheduler.service
+systemctl enable nexus-backend.service
+systemctl enable nexus-frontend.service
+systemctl enable nexus-worker.service
+systemctl enable nexus-scheduler.service
 ```
 
 ### 3. Start Services
 ```bash
-sudo systemctl start nexus-backend
-sudo systemctl start nexus-frontend
-sudo systemctl start nexus-worker
-sudo systemctl start nexus-scheduler
+systemctl start nexus-backend
+systemctl start nexus-frontend
+systemctl start nexus-worker
+systemctl start nexus-scheduler
 ```
 
 ### 4. Check Service Status
 ```bash
-sudo systemctl status nexus-backend
-sudo systemctl status nexus-frontend
-sudo systemctl status nexus-worker
-sudo systemctl status nexus-scheduler
+systemctl status nexus-backend
+systemctl status nexus-frontend
+systemctl status nexus-worker
+systemctl status nexus-scheduler
 ```
 
 ## Nginx Configuration
 
 ### 1. Install Nginx
 ```bash
-sudo dnf install -y nginx
+dnf install -y nginx
 ```
 
 ### 2. Configure Nginx
 ```bash
 # Copy Nginx configuration
-sudo cp /home/nexus/monitoring-portal/deployment/nginx/nexus-monitoring.conf /etc/nginx/conf.d/
+cp /opt/orion-nexus/deployment/nginx/nexus-monitoring.conf /etc/nginx/conf.d/orion-nexus.conf
 
 # Edit configuration to match your domain
-sudo vim /etc/nginx/conf.d/nexus-monitoring.conf
+vim /etc/nginx/conf.d/orion-nexus.conf
 
 # Replace 'your-domain.com' with your actual domain
 # Update SSL certificate paths if needed
+# Update server_name and proxy_pass directives as needed
 ```
 
 ### 3. Test and Start Nginx
 ```bash
 # Test Nginx configuration
-sudo nginx -t
+nginx -t
 
 # Start and enable Nginx
-sudo systemctl start nginx
-sudo systemctl enable nginx
+systemctl start nginx
+systemctl enable nginx
 ```
 
 ## SSL Setup
@@ -388,35 +380,35 @@ sudo systemctl enable nginx
 ### 1. Install Certbot
 ```bash
 # Install snapd
-sudo dnf install -y snapd
-sudo systemctl enable --now snapd.socket
-sudo ln -s /var/lib/snapd/snap /snap
+dnf install -y snapd
+systemctl enable --now snapd.socket
+ln -s /var/lib/snapd/snap /snap
 
 # Install certbot via snap
-sudo snap install core; sudo snap refresh core
-sudo snap install --classic certbot
-sudo ln -s /snap/bin/certbot /usr/bin/certbot
+snap install core; snap refresh core
+snap install --classic certbot
+ln -s /snap/bin/certbot /usr/bin/certbot
 ```
 
 ### 2. Obtain SSL Certificate
 ```bash
 # Stop nginx temporarily
-sudo systemctl stop nginx
+systemctl stop nginx
 
 # Obtain certificate
-sudo certbot certonly --standalone -d your-domain.com -d www.your-domain.com
+certbot certonly --standalone -d your-domain.com -d www.your-domain.com
 
 # Start nginx
-sudo systemctl start nginx
+systemctl start nginx
 ```
 
 ### 3. Setup Auto-renewal
 ```bash
 # Test renewal
-sudo certbot renew --dry-run
+certbot renew --dry-run
 
 # Add cron job for auto-renewal
-echo "0 12 * * * /usr/bin/certbot renew --quiet" | sudo crontab -
+echo "0 12 * * * /usr/bin/certbot renew --quiet" | crontab -
 ```
 
 ## Final Testing
@@ -424,26 +416,34 @@ echo "0 12 * * * /usr/bin/certbot renew --quiet" | sudo crontab -
 ### 1. Test Application
 ```bash
 # Check if all services are running
-sudo systemctl status nexus-backend nexus-frontend nexus-worker nexus-scheduler
+systemctl status nexus-backend nexus-frontend nexus-worker nexus-scheduler
 
 # Test backend API
 curl -k https://your-domain.com/api/health
 
 # Test frontend
 curl -k https://your-domain.com/
+
+# Test MongoDB Atlas connection
+cd /opt/orion-nexus/backend
+source venv/bin/activate
+python3 -c "from core.database import get_database; print('MongoDB Atlas connection:', 'OK' if get_database() else 'FAILED')"
 ```
 
 ### 2. Check Logs
 ```bash
 # Backend logs
-sudo journalctl -u nexus-backend -f
+journalctl -u nexus-backend -f
 
 # Frontend logs
-sudo journalctl -u nexus-frontend -f
+journalctl -u nexus-frontend -f
 
 # Nginx logs
-sudo tail -f /var/log/nginx/access.log
-sudo tail -f /var/log/nginx/error.log
+tail -f /var/log/nginx/access.log
+tail -f /var/log/nginx/error.log
+
+# Application logs
+tail -f /var/log/orion-nexus/*.log
 ```
 
 ## Maintenance
@@ -451,32 +451,37 @@ sudo tail -f /var/log/nginx/error.log
 ### Daily Tasks
 ```bash
 # Check service status
-sudo systemctl status nexus-backend nexus-frontend nexus-worker nexus-scheduler
+systemctl status nexus-backend nexus-frontend nexus-worker nexus-scheduler
 
 # Check disk space
 df -h
 
 # Check logs for errors
-sudo journalctl --since "1 hour ago" | grep -i error
+journalctl --since "1 hour ago" | grep -i error
+
+# Test MongoDB Atlas connectivity
+cd /opt/orion-nexus/backend && source venv/bin/activate && python3 -c "from core.database import get_database; print('DB Status:', 'Connected' if get_database() else 'Disconnected')"
 ```
 
 ### Weekly Tasks
 ```bash
 # Update system packages
-sudo dnf update -y
+dnf update -y
 
-# Backup database
-mongodump --db orion_nexus --out /var/backups/nexus/mongodb_$(date +%Y%m%d)
+# Backup application configuration
+tar -czf /var/backups/orion-nexus/config_backup_$(date +%Y%m%d).tar.gz /opt/orion-nexus/backend/.env.production /opt/orion-nexus/frontend/.env.local
 
 # Clean old logs
-sudo journalctl --vacuum-time=7d
+journalctl --vacuum-time=7d
+
+# Check SSL certificate expiry
+certbot certificates
 ```
 
 ### Monthly Tasks
 ```bash
 # Update application
-sudo su - nexus
-cd /home/nexus/monitoring-portal
+cd /opt/orion-nexus
 git pull
 
 # Update backend dependencies
@@ -490,66 +495,190 @@ npm update
 npm run build
 
 # Restart services
-exit
-sudo systemctl restart nexus-backend nexus-frontend nexus-worker nexus-scheduler
+systemctl restart nexus-backend nexus-frontend nexus-worker nexus-scheduler
+
+# Verify all services are running
+systemctl status nexus-backend nexus-frontend nexus-worker nexus-scheduler
 ```
 
 ## Troubleshooting
 
 ### Common Issues
 
+#### Repository Structure Issues (ENOENT Errors)
+
+If you encounter "ENOENT: no such file or directory" errors during npm install or other operations:
+
+**QUICK FIX - Repository Missing Frontend Files:**
+
+If the git repository has no files under the frontend folder (confirmed issue), use this workaround:
+
+```bash
+# Option 1: Copy entire frontend directory from working repository
+# Replace /path/to/working/repo with your actual working repository path
+cp -r /path/to/working/repo/frontend/* /opt/orion-nexus/frontend/
+cp -r /path/to/working/repo/backend/* /opt/orion-nexus/backend/
+
+# Option 2: If using Windows/local development repository
+# Example: Copy from your local development environment
+# scp -r user@local-machine:/path/to/working/repo/frontend/* /opt/orion-nexus/frontend/
+# scp -r user@local-machine:/path/to/working/repo/backend/* /opt/orion-nexus/backend/
+
+# Option 3: Use rsync for better file copying
+# rsync -av /path/to/working/repo/frontend/ /opt/orion-nexus/frontend/
+# rsync -av /path/to/working/repo/backend/ /opt/orion-nexus/backend/
+
+# Verify files were copied correctly
+ls -la /opt/orion-nexus/frontend/
+ls -la /opt/orion-nexus/backend/
+
+# Then proceed with installation
+cd /opt/orion-nexus/frontend
+npm install
+```
+
+**DETAILED TROUBLESHOOTING:**
+
+```bash
+# 0. Check if git repository is missing frontend files entirely
+cd /opt/orion-nexus
+find . -name "package.json" -type f
+find . -name "*.js" -o -name "*.jsx" -o -name "*.ts" -o -name "*.tsx" | head -10
+
+# If no frontend files found, check repository details
+git remote -v
+git branch -a
+git log --oneline -5
+
+echo "Repository may be incomplete or wrong branch. Consider:"
+echo "1. Checking if you cloned the correct repository"
+echo "2. Switching to the correct branch (e.g., main, master, develop)"
+echo "3. Contacting repository maintainer for correct repository URL"
+echo "4. Using a known working repository as source"
+
+# 1. Verify the repository was cloned correctly
+ls -la /opt/orion-nexus/
+
+# 2. Check if the repository structure matches expectations
+find /opt/orion-nexus -name "package.json" -type f
+find /opt/orion-nexus -name "requirements.txt" -type f
+
+# 3. If repository structure is different, check the actual repository contents
+cd /opt/orion-nexus
+git remote -v
+git branch -a
+git log --oneline -5
+
+# 4. If frontend directory is missing or has different structure:
+# Option A: Check if it's in a subdirectory
+find /opt/orion-nexus -type d -name "frontend"
+
+# Option B: If repository has different structure, adapt paths accordingly
+# Example: if frontend is in a different location
+# ls -la /opt/orion-nexus/*/frontend/
+
+# 5. Fix permissions if needed
+chown -R root:root /opt/orion-nexus/
+chmod -R 755 /opt/orion-nexus/
+
+# 6. Re-clone repository if structure is completely wrong
+rm -rf /opt/orion-nexus
+git clone https://github.com/mriislam/orion-nexus.git /opt/orion-nexus
+
+# 6a. If repository appears incomplete (only package-lock.json but no package.json):
+# This indicates the repository may be incomplete or have missing files
+echo "Checking for incomplete repository structure..."
+if [ -f "/opt/orion-nexus/frontend/package-lock.json" ] && [ ! -f "/opt/orion-nexus/frontend/package.json" ]; then
+    echo "WARNING: Found package-lock.json but no package.json - repository may be incomplete"
+    echo "Try checking different branches or contact repository maintainer"
+    git branch -a
+fi
+
+# 7. Verify package.json exists before running npm install
+if [ -f "/opt/orion-nexus/frontend/package.json" ]; then
+    echo "Frontend package.json found"
+    cd /opt/orion-nexus/frontend
+    npm install
+else
+    echo "ERROR: Frontend package.json not found!"
+    echo "Current frontend directory contents:"
+    ls -la /opt/orion-nexus/frontend/
+    echo ""
+    echo "This indicates the repository is incomplete or has a different structure."
+    echo "Possible solutions:"
+    echo "1. Check if this is the correct repository URL"
+    echo "2. Verify the repository branch (try 'git branch -a')"
+    echo "3. Check if frontend files are in a different location:"
+    find /opt/orion-nexus -name "package.json" -type f
+    echo "4. Contact repository maintainer if files are missing"
+    echo "5. IMMEDIATE WORKAROUND: Copy package.json from a working repository"
+    echo "   If you have access to a complete repository structure elsewhere:"
+    echo "   cp /path/to/working/repo/frontend/package.json /opt/orion-nexus/frontend/"
+    echo "   cp /path/to/working/repo/frontend/.env.example /opt/orion-nexus/frontend/"
+    echo "   Then retry: npm install"
+    exit 1
+fi
+```
+
 #### Services Won't Start
 ```bash
 # Check service logs
-sudo journalctl -u nexus-backend -n 50
+journalctl -u nexus-backend -n 50
 
 # Check if ports are in use
-sudo netstat -tlnp | grep :8000
-sudo netstat -tlnp | grep :3000
+netstat -tlnp | grep :8000
+netstat -tlnp | grep :3000
 
 # Check file permissions
-ls -la /home/nexus/monitoring-portal/
+ls -la /opt/orion-nexus/
+
+# Check environment files
+ls -la /opt/orion-nexus/backend/.env.production
+ls -la /opt/orion-nexus/frontend/.env.local
 ```
 
 #### Database Connection Issues
 ```bash
-# Test database connection
-mongosh -u nexus_user -p your_secure_password_here --authenticationDatabase orion_nexus
+# Test MongoDB Atlas connection
+cd /opt/orion-nexus/backend
+source venv/bin/activate
+python3 -c "from core.database import get_database; db = get_database(); print('Connection successful' if db else 'Connection failed')"
 
-# Check MongoDB status
-sudo systemctl status mongod
+# Test with mongosh directly
+mongosh "mongodb+srv://nmp:<db_password>@orion-nexus.5lt4kqc.mongodb.net/?retryWrites=true&w=majority&appName=orion-nexus"
 
-# Check MongoDB logs
-sudo tail -f /var/log/mongodb/mongod.log
+# Check network connectivity to MongoDB Atlas
+ping orion-nexus.5lt4kqc.mongodb.net
+nslookup orion-nexus.5lt4kqc.mongodb.net
 
-# Fix socket permission errors
-sudo systemctl stop mongod
-sudo rm -f /tmp/mongodb-27017.sock
-sudo chmod 1777 /tmp
-sudo chown mongod:mongod /var/lib/mongo /var/log/mongodb
-sudo systemctl start mongod
+# Verify environment variables
+cd /opt/orion-nexus/backend
+grep MONGODB_URL .env.production
 ```
 
 #### Nginx Issues
 ```bash
 # Test Nginx configuration
-sudo nginx -t
+nginx -t
 
 # Check Nginx logs
-sudo tail -f /var/log/nginx/error.log
+tail -f /var/log/nginx/error.log
 
 # Check if Nginx is listening
-sudo netstat -tlnp | grep :80
-sudo netstat -tlnp | grep :443
+netstat -tlnp | grep :80
+netstat -tlnp | grep :443
+
+# Check Nginx configuration file
+cat /etc/nginx/conf.d/orion-nexus.conf
 ```
 
 #### SSL Certificate Issues
 ```bash
 # Check certificate status
-sudo certbot certificates
+certbot certificates
 
 # Renew certificate manually
-sudo certbot renew
+certbot renew
 
 # Check certificate expiry
 echo | openssl s_client -servername your-domain.com -connect your-domain.com:443 2>/dev/null | openssl x509 -noout -dates
@@ -583,11 +712,24 @@ sudo tail -f /var/log/nexus/*.log
 ### Support
 
 For additional support:
-- Check application logs in `/var/log/nexus/`
+- Check application logs in `/var/log/orion-nexus/`
 - Review systemd service logs with `journalctl`
-- Consult the main documentation in `MANUAL_DEPLOYMENT.md`
-- Check the project repository for updates and issues
+- Consult the main documentation in `README.md`
+- Check the project repository at https://github.com/mriislam/orion-nexus.git for updates and issues
+- Review MongoDB Atlas dashboard for database connectivity issues
 
 ---
 
-**Note**: Replace `your-domain.com` with your actual domain name throughout this guide. Ensure all passwords and secret keys are properly secured and unique for your installation.
+**Important Notes**: 
+- Replace `your-domain.com` with your actual domain name throughout this guide
+- Replace `<db_password>` with your actual MongoDB Atlas password
+- Ensure all secret keys (SECRET_KEY, AES_SECRET_KEY, JWT_SECRET_KEY) are properly secured and unique
+- This guide assumes root user access for all operations
+- MongoDB Atlas handles database backups automatically, but ensure you have application configuration backups
+- **Always verify repository structure after cloning** - if you encounter ENOENT errors, check the troubleshooting section for repository structure issues
+- Ensure the repository contains both `frontend/` and `backend/` directories with their respective `package.json` and `requirements.txt` files
+- **Empty Repository Issue**: If the git repository has no files under the frontend folder, this indicates either:
+  - Wrong repository URL was cloned
+  - Incorrect branch is checked out (try `main`, `master`, or `develop` branches)
+  - Repository is incomplete or corrupted
+  - You need to use a different/working repository as the source

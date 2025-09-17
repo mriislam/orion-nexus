@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { analytics } from '@/lib/firebase';
 import { logEvent } from 'firebase/analytics';
 import {
   BarChart3,
@@ -29,6 +28,7 @@ interface AnalyticsData {
 
 const FirebaseAnalyticsRail = () => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [analytics, setAnalytics] = useState<any>(null);
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({
     activeUsers: 127,
     pageViews: 2847,
@@ -49,16 +49,25 @@ const FirebaseAnalyticsRail = () => {
   });
 
   useEffect(() => {
-    // Log page view when component mounts
-    if (typeof window !== 'undefined' && analytics) {
-      try {
-        logEvent(analytics, 'page_view', {
-          page_title: 'Dashboard',
-          page_location: window.location.href
-        });
-      } catch (error) {
-        console.warn('Firebase Analytics not configured properly:', error);
-      }
+    // Initialize Firebase analytics on client side only
+    if (typeof window !== 'undefined') {
+      import('@/lib/firebase').then(({ analytics: firebaseAnalytics }) => {
+        setAnalytics(firebaseAnalytics);
+        
+        // Log page view when component mounts
+        if (firebaseAnalytics) {
+          try {
+            logEvent(firebaseAnalytics, 'page_view', {
+              page_title: 'Dashboard',
+              page_location: window.location.href
+            });
+          } catch (error) {
+            console.warn('Firebase Analytics not configured properly:', error);
+          }
+        }
+      }).catch(error => {
+        console.warn('Failed to load Firebase analytics:', error);
+      });
     }
 
     // Simulate real-time data updates
@@ -74,7 +83,7 @@ const FirebaseAnalyticsRail = () => {
   }, []);
 
   const trackEvent = (eventName: string, parameters?: any) => {
-    if (analytics) {
+    if (analytics && typeof window !== 'undefined') {
       try {
         logEvent(analytics, eventName, parameters);
       } catch (error) {

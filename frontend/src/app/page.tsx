@@ -9,7 +9,13 @@ import DeviceStatus from '@/components/dashboard/DeviceStatus';
 import SSLMonitoring from '@/components/dashboard/SSLMonitoring';
 import RealtimeAnalytics from '@/components/dashboard/RealtimeAnalytics';
 import NetworkTrafficChart from '@/components/dashboard/NetworkTrafficChart';
-import FirebaseAnalyticsRail from '@/components/analytics/FirebaseAnalyticsRail';
+import dynamic from 'next/dynamic';
+
+// Dynamically import FirebaseAnalyticsRail to prevent SSR issues
+const FirebaseAnalyticsRail = dynamic(
+  () => import('@/components/analytics/FirebaseAnalyticsRail'),
+  { ssr: false }
+);
 import UptimeOverviewCard from '@/components/dashboard/UptimeOverviewCard';
 import NetworkPerformanceCard from '@/components/dashboard/NetworkPerformanceCard';
 import SystemAlertsCard from '@/components/dashboard/SystemAlertsCard';

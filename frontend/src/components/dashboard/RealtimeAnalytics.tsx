@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import {
@@ -40,7 +40,7 @@ const RealtimeAnalytics: React.FC<RealtimeAnalyticsProps> = ({
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(autoRefresh);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchRealtimeData = async () => {
+  const fetchRealtimeData = useCallback(async () => {
     try {
       setError(null);
       const response = await fetch(`/api/v1/analytics/${propertyId}/realtime-report`);
@@ -59,7 +59,7 @@ const RealtimeAnalytics: React.FC<RealtimeAnalyticsProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [propertyId]);
 
   const handleManualRefresh = () => {
     setLoading(true);
@@ -69,7 +69,7 @@ const RealtimeAnalytics: React.FC<RealtimeAnalyticsProps> = ({
   // Initial data fetch
   useEffect(() => {
     fetchRealtimeData();
-  }, [propertyId]);
+  }, [fetchRealtimeData]);
 
   // Auto-refresh effect
   useEffect(() => {
@@ -80,7 +80,7 @@ const RealtimeAnalytics: React.FC<RealtimeAnalyticsProps> = ({
     }, refreshInterval);
 
     return () => clearInterval(interval);
-  }, [autoRefreshEnabled, refreshInterval, propertyId]);
+  }, [autoRefreshEnabled, refreshInterval, fetchRealtimeData]);
 
   const getMetricValue = (metricName: string): string => {
     if (!realtimeData || !realtimeData.rows || realtimeData.rows.length === 0) {

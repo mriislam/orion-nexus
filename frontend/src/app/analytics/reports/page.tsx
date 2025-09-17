@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Layout from '@/components/layout/Layout';
 import EnhancedReports from '@/components/analytics/EnhancedReports';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
@@ -10,7 +10,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { analyticsService } from '@/lib/services/analytics';
 import { GACredentialsResponse } from '@/types';
 
-const ReportsAnalyticsPage = () => {
+const ReportsAnalyticsContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [credentials, setCredentials] = useState<GACredentialsResponse[]>([]);
@@ -124,6 +124,20 @@ const ReportsAnalyticsPage = () => {
         </div>
       </div>
     </Layout>
+  );
+};
+
+const ReportsAnalyticsPage = () => {
+  return (
+    <Suspense fallback={
+      <Layout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
+        </div>
+      </Layout>
+    }>
+      <ReportsAnalyticsContent />
+    </Suspense>
   );
 };
 

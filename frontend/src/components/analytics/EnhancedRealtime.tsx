@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
@@ -116,7 +116,7 @@ const EnhancedRealtime: React.FC<EnhancedRealtimeProps> = ({ propertyId, onCardC
     ]
   };
 
-  const fetchRealtimeData = async () => {
+  const fetchRealtimeData = useCallback(async () => {
     if (propertyId === 'demo') {
       setRealtimeData(demoData);
       setLastUpdated(new Date());
@@ -155,7 +155,7 @@ const EnhancedRealtime: React.FC<EnhancedRealtimeProps> = ({ propertyId, onCardC
     } finally {
       setLoading(false);
     }
-  };
+  }, [propertyId]);
 
   const generateChartData = () => {
     const now = new Date();
@@ -213,7 +213,7 @@ const EnhancedRealtime: React.FC<EnhancedRealtimeProps> = ({ propertyId, onCardC
 
   useEffect(() => {
     fetchRealtimeData();
-  }, [propertyId]);
+  }, [fetchRealtimeData]);
 
   useEffect(() => {
     if (realtimeData) {
@@ -226,7 +226,7 @@ const EnhancedRealtime: React.FC<EnhancedRealtimeProps> = ({ propertyId, onCardC
       const interval = setInterval(fetchRealtimeData, 30000); // 30 seconds
       return () => clearInterval(interval);
     }
-  }, [autoRefresh, propertyId]);
+  }, [autoRefresh, fetchRealtimeData]);
 
   const handleCardClick = (cardType: string, data: any) => {
     if (onCardClick) {
